@@ -2,8 +2,8 @@
 
 ## Project info
 
-**URL**: https://lovable.dev/projects/d55211fe-af2a-4b02-b8d4-bf518a314033
-
+**URL**: https://lovable.dev/projects/d55211fe-af2a-4b02-b8d4-bf518a314033 
+**URL**: https://equivest-hedera.lovable.app/
 ## How can I edit this code?
 
 There are several ways of editing your application.
@@ -11,6 +11,7 @@ There are several ways of editing your application.
 **Use Lovable**
 
 Simply visit the [Lovable Project](https://lovable.dev/projects/d55211fe-af2a-4b02-b8d4-bf518a314033) and start prompting.
+
 
 Changes made via Lovable will be committed automatically to this repo.
 
