@@ -2,23 +2,25 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Wallet, TrendingUp, ArrowUpRight, ArrowDownRight, RefreshCw, ExternalLink } from "lucide-react";
+import {
+  Wallet,
+  TrendingUp,
+  ArrowUpRight,
+  ArrowDownRight,
+  RefreshCw,
+  ExternalLink,
+} from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useWallet } from "@/context/WalletContext"; // ✅ import wallet hook
 
-// Dummy wallet and investment data for MVP
-const walletData = {
-  address: "0.0.1234567",
-  balance: "1,234.56 HBAR",
-  connectedWallet: "HashPack"
-};
-
+// Dummy investment data (kept for now until token is ready)
 const investmentData = {
   propertyTokens: 25,
   tokenValue: 100,
   totalInvestment: 2500,
   currentValue: 2675,
   gainLoss: 175,
-  gainLossPercentage: 7.0
+  gainLossPercentage: 7.0,
 };
 
 const transactionHistory = [
@@ -28,32 +30,31 @@ const transactionHistory = [
     amount: 10,
     price: 100,
     date: "2024-01-15T10:30:00Z",
-    hash: "0x1a2b3c...9f8e7d"
+    hash: "0x1a2b3c...9f8e7d",
   },
   {
-    id: "TX002", 
+    id: "TX002",
     type: "buy",
     amount: 15,
     price: 100,
     date: "2024-01-10T14:20:00Z",
-    hash: "0x9f8e7d...1a2b3c"
-  }
+    hash: "0x9f8e7d...1a2b3c",
+  },
 ];
 
 const Dashboard = () => {
   const [isRedeeming, setIsRedeeming] = useState(false);
+  const { accountId, shortAccount, balance, isConnected } = useWallet(); // ✅ get wallet info
 
   const handleRedeemTokens = async () => {
     setIsRedeeming(true);
-    // Dummy redeem function for MVP
     try {
       toast({
         title: "Redemption Initiated",
         description: `Redeeming ${investmentData.propertyTokens} tokens worth $${investmentData.currentValue}`,
       });
       console.log("Redeeming tokens...");
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
       toast({
         title: "Redemption Complete",
         description: "Your tokens have been successfully redeemed!",
@@ -62,7 +63,7 @@ const Dashboard = () => {
       toast({
         title: "Redemption Failed",
         description: "Unable to process redemption. Please try again.",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsRedeeming(false);
@@ -70,12 +71,12 @@ const Dashboard = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -105,21 +106,32 @@ const Dashboard = () => {
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Connected Wallet</p>
                 <div className="flex items-center justify-between">
-                  <Badge variant="outline" className="text-success border-success">
-                    {walletData.connectedWallet}
+                  <Badge
+                    variant="outline"
+                    className={
+                      isConnected
+                        ? "text-success border-success"
+                        : "text-muted border-muted"
+                    }
+                  >
+                    HashPack
                   </Badge>
-                  <Badge variant="secondary">Connected</Badge>
+                  <Badge variant={isConnected ? "secondary" : "destructive"}>
+                    {isConnected ? "Connected" : "Disconnected"}
+                  </Badge>
                 </div>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Wallet Address</p>
                 <p className="font-mono text-sm bg-muted px-3 py-2 rounded">
-                  {walletData.address}
+                  {isConnected ? shortAccount || accountId : "Not connected"}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground mb-1">HBAR Balance</p>
-                <p className="text-lg font-semibold">{walletData.balance}</p>
+                <p className="text-lg font-semibold">
+                  {isConnected ? `${balance ?? "0"} ℏ` : "-"}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -136,7 +148,9 @@ const Dashboard = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Property Tokens</p>
-                  <p className="text-2xl font-bold">{investmentData.propertyTokens}</p>
+                  <p className="text-2xl font-bold">
+                    {investmentData.propertyTokens}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Token Value</p>
@@ -144,7 +158,9 @@ const Dashboard = () => {
                 </div>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground mb-2">Total Investment Value</p>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Total Investment Value
+                </p>
                 <p className="text-3xl font-bold text-primary">
                   ${investmentData.currentValue.toLocaleString()}
                 </p>
@@ -154,10 +170,15 @@ const Dashboard = () => {
                   ) : (
                     <ArrowDownRight className="h-4 w-4 text-destructive mr-1" />
                   )}
-                  <span className={`text-sm font-semibold ${
-                    investmentData.gainLoss > 0 ? 'text-success' : 'text-destructive'
-                  }`}>
-                    ${Math.abs(investmentData.gainLoss)} ({Math.abs(investmentData.gainLossPercentage)}%)
+                  <span
+                    className={`text-sm font-semibold ${
+                      investmentData.gainLoss > 0
+                        ? "text-success"
+                        : "text-destructive"
+                    }`}
+                  >
+                    ${Math.abs(investmentData.gainLoss)} (
+                    {Math.abs(investmentData.gainLossPercentage)}%)
                   </span>
                 </div>
               </div>
@@ -172,18 +193,21 @@ const Dashboard = () => {
             <CardContent className="space-y-4">
               <div className="space-y-3">
                 <div className="p-4 bg-muted rounded-lg">
-                  <h4 className="font-semibold text-sm mb-2">Available for Redemption</h4>
+                  <h4 className="font-semibold text-sm mb-2">
+                    Available for Redemption
+                  </h4>
                   <p className="text-2xl font-bold text-primary">
                     ${investmentData.currentValue.toLocaleString()}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {investmentData.propertyTokens} tokens @ ${investmentData.tokenValue} each
+                    {investmentData.propertyTokens} tokens @ $
+                    {investmentData.tokenValue} each
                   </p>
                 </div>
-                
-                <Button 
-                  variant="destructive" 
-                  className="w-full" 
+
+                <Button
+                  variant="destructive"
+                  className="w-full"
                   size="lg"
                   onClick={handleRedeemTokens}
                   disabled={isRedeeming}
@@ -195,7 +219,7 @@ const Dashboard = () => {
                   )}
                   {isRedeeming ? "Processing..." : "Redeem All Tokens"}
                 </Button>
-                
+
                 <p className="text-xs text-muted-foreground text-center">
                   Token redemption is simulated in this MVP
                 </p>
@@ -211,12 +235,19 @@ const Dashboard = () => {
             <CardContent>
               <div className="space-y-4">
                 {transactionHistory.map((tx) => (
-                  <div key={tx.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div
+                    key={tx.id}
+                    className="flex items-center justify-between p-4 border rounded-lg"
+                  >
                     <div className="flex items-center space-x-4">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        tx.type === 'buy' ? 'bg-success/10' : 'bg-destructive/10'
-                      }`}>
-                        {tx.type === 'buy' ? (
+                      <div
+                        className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          tx.type === "buy"
+                            ? "bg-success/10"
+                            : "bg-destructive/10"
+                        }`}
+                      >
+                        {tx.type === "buy" ? (
                           <ArrowUpRight className="h-5 w-5 text-success" />
                         ) : (
                           <ArrowDownRight className="h-5 w-5 text-destructive" />
@@ -224,7 +255,8 @@ const Dashboard = () => {
                       </div>
                       <div>
                         <p className="font-semibold capitalize">
-                          {tx.type} {tx.amount} Token{tx.amount !== 1 ? 's' : ''}
+                          {tx.type} {tx.amount} Token
+                          {tx.amount !== 1 ? "s" : ""}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           {formatDate(tx.date)}
@@ -237,7 +269,11 @@ const Dashboard = () => {
                       </p>
                       <div className="flex items-center text-xs text-muted-foreground">
                         <code className="mr-1">{tx.hash}</code>
-                        <Button variant="ghost" size="sm" className="h-4 w-4 p-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-4 w-4 p-0"
+                        >
                           <ExternalLink className="h-3 w-3" />
                         </Button>
                       </div>
@@ -245,11 +281,13 @@ const Dashboard = () => {
                   </div>
                 ))}
               </div>
-              
+
               {transactionHistory.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   <p>No transactions yet</p>
-                  <p className="text-sm">Your investment activity will appear here</p>
+                  <p className="text-sm">
+                    Your investment activity will appear here
+                  </p>
                 </div>
               )}
             </CardContent>

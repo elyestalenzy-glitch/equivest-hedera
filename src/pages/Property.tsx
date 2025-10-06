@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Users, TrendingUp, Shield, ExternalLink } from "lucide-react";
-import testProperty from "@/assets/test-property.jpg";
+import { useWallet } from "@/context/WalletContext"; // <-- use the hook now
 import { toast } from "@/hooks/use-toast";
 
 // Hardcoded property data for MVP
@@ -17,37 +17,46 @@ const propertyData = {
   tokensRemaining: 12500,
   contractHash: "0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b",
   expectedReturn: 8.5,
-  location: {
-    neighborhood: "Downtown District", 
-    city: "Metro City"
-  },
+  location: { neighborhood: "Downtown District", city: "Metro City" },
   features: [
     "Prime downtown location",
     "24/7 security and concierge",
     "Rooftop amenities and pool",
-    "Walking distance to transit"
+    "Walking distance to transit",
   ],
-  details: {
-    type: "Mixed-use residential",
-    yearBuilt: 2022,
-    units: 48,
-    occupancyRate: 94
-  }
+  details: { type: "Mixed-use residential", yearBuilt: 2022, units: 48, occupancyRate: 94 },
 };
 
 const Property = () => {
   const [tokensToBuy, setTokensToBuy] = useState(1);
 
-  const handleBuyToken = () => {
-    // Dummy buy function for MVP
-    toast({
-      title: "Purchase Initiated",
-      description: `Attempting to purchase ${tokensToBuy} token(s) for $${tokensToBuy * propertyData.tokenPrice}`,
-    });
-    console.log(`Buying ${tokensToBuy} tokens...`);
-  };
+  // Using the hook now
+  const { isConnected, connectWallet, accountId } = useWallet();
 
-  const progressPercentage = ((propertyData.totalTokens - propertyData.tokensRemaining) / propertyData.totalTokens) * 100;
+  const progressPercentage =
+    ((propertyData.totalTokens - propertyData.tokensRemaining) / propertyData.totalTokens) * 100;
+
+  const handleBuyToken = async () => {
+    if (!isConnected) {
+      toast({
+        title: "Wallet Not Connected",
+        description: "Please connect your Hedera wallet first",
+      });
+      return;
+    }
+
+    // Call your smart contract buy function here
+    try {
+      toast({
+        title: "Purchase Initiated",
+        description: `Attempting to purchase ${tokensToBuy} token(s) for $${tokensToBuy * propertyData.tokenPrice}`,
+      });
+      console.log(`Buying ${tokensToBuy} tokens for account ${accountId}...`);
+      // TODO: integrate actual smart contract call
+    } catch (err) {
+      toast({ title: "Purchase Failed", description: (err as Error).message });
+    }
+  };
 
   return (
     <div className="min-h-screen py-8">
@@ -57,9 +66,7 @@ const Property = () => {
           <Badge variant="secondary" className="mb-4">
             Property Investment Opportunity
           </Badge>
-          <h1 className="text-3xl md:text-4xl font-bold text-primary mb-2">
-            {propertyData.name}
-          </h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-primary mb-2">{propertyData.name}</h1>
           <div className="flex items-center text-muted-foreground">
             <MapPin className="h-4 w-4 mr-2" />
             <span>{propertyData.address}</span>
@@ -71,13 +78,13 @@ const Property = () => {
           <div className="lg:col-span-2 space-y-6">
             <Card className="overflow-hidden">
               <div className="relative">
-                <img 
-                  src={testProperty} 
+                <img
+                  src="/test-property.jpg"
                   alt={propertyData.name}
                   className="w-full h-[400px] object-cover"
                 />
                 <div className="absolute top-4 right-4">
-                  <Badge variant="default" className="bg-success text-primary-foreground">
+                  <Badge variant="secondary" className="bg-green-500 text-white">
                     {propertyData.details.occupancyRate}% Occupied
                   </Badge>
                 </div>
@@ -110,7 +117,7 @@ const Property = () => {
                     <ul className="space-y-1 text-sm">
                       {propertyData.features.map((feature, index) => (
                         <li key={index} className="flex items-center">
-                          <div className="w-1.5 h-1.5 bg-success rounded-full mr-2" />
+                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2" />
                           {feature}
                         </li>
                       ))}
@@ -124,7 +131,7 @@ const Property = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Shield className="h-5 w-5 mr-2 text-success" />
+                  <Shield className="h-5 w-5 mr-2 text-green-500" />
                   Ownership Verified on Hedera
                 </CardTitle>
               </CardHeader>
@@ -140,9 +147,7 @@ const Property = () => {
                       View on Explorer
                     </Button>
                   </div>
-                  <code className="text-xs text-primary break-all">
-                    {propertyData.contractHash}
-                  </code>
+                  <code className="text-xs text-primary break-all">{propertyData.contractHash}</code>
                 </div>
               </CardContent>
             </Card>
@@ -165,7 +170,7 @@ const Property = () => {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Expected Return</span>
-                  <span className="text-lg font-semibold text-success flex items-center">
+                  <span className="text-lg font-semibold text-green-500 flex items-center">
                     <TrendingUp className="h-4 w-4 mr-1" />
                     {propertyData.expectedReturn}%
                   </span>
@@ -184,7 +189,7 @@ const Property = () => {
                     <span>Remaining: {propertyData.tokensRemaining}</span>
                   </div>
                   <div className="w-full bg-muted rounded-full h-3">
-                    <div 
+                    <div
                       className="h-3 gradient-secondary rounded-full transition-all duration-500"
                       style={{ width: `${progressPercentage}%` }}
                     />
@@ -195,12 +200,10 @@ const Property = () => {
                 </div>
 
                 <div className="pt-4 border-t">
-                  <label className="text-sm font-medium mb-2 block">
-                    Number of tokens to buy:
-                  </label>
+                  <label className="text-sm font-medium mb-2 block">Number of tokens to buy:</label>
                   <div className="flex items-center space-x-2 mb-4">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       onClick={() => setTokensToBuy(Math.max(1, tokensToBuy - 1))}
                       disabled={tokensToBuy <= 1}
@@ -210,32 +213,28 @@ const Property = () => {
                     <span className="px-4 py-2 border rounded-md min-w-[60px] text-center">
                       {tokensToBuy}
                     </span>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
-                      onClick={() => setTokensToBuy(Math.min(propertyData.tokensRemaining, tokensToBuy + 1))}
+                      onClick={() =>
+                        setTokensToBuy(Math.min(propertyData.tokensRemaining, tokensToBuy + 1))
+                      }
                       disabled={tokensToBuy >= propertyData.tokensRemaining}
                     >
                       +
                     </Button>
                   </div>
 
-                  <div className="bg-muted rounded-lg p-3 mb-4">
-                    <div className="flex justify-between text-sm">
-                      <span>Total Cost:</span>
-                      <span className="font-semibold">${(tokensToBuy * propertyData.tokenPrice).toLocaleString()}</span>
-                    </div>
-                  </div>
-
-                  <Button 
-                    variant="investment" 
-                    className="w-full" 
-                    size="lg"
-                    onClick={handleBuyToken}
-                  >
-                    <Users className="mr-2 h-4 w-4" />
-                    Buy Tokens
-                  </Button>
+                  {!isConnected ? (
+                    <Button variant="investment" className="w-full" size="lg" onClick={connectWallet}>
+                      Connect Wallet
+                    </Button>
+                  ) : (
+                    <Button variant="investment" className="w-full" size="lg" onClick={handleBuyToken}>
+                      <Users className="mr-2 h-4 w-4" />
+                      Buy Tokens
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>

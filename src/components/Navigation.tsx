@@ -1,11 +1,23 @@
+// src/components/Navigation.tsx
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Home, Building2, BarChart3, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useWallet } from "@/context/WalletContext";
 
 const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false); // 👈 new
   const location = useLocation();
+
+  const {
+    accountId,
+    balance,
+    connectWallet,
+    disconnectWallet,
+    isConnected,
+    shortAccount,
+  } = useWallet();
 
   const navItems = [
     { path: "/", label: "Home", icon: Home },
@@ -14,6 +26,17 @@ const Navigation = () => {
   ];
 
   const isActive = (path: string) => location.pathname === path;
+
+  const handleConnect = async () => {
+    try {
+      setIsConnecting(true);
+      await connectWallet();
+    } catch (err) {
+      console.error("Wallet connection failed:", err);
+    } finally {
+      setIsConnecting(false);
+    }
+  };
 
   return (
     <nav className="bg-card border-b shadow-elegant">
@@ -46,9 +69,27 @@ const Navigation = () => {
                 </Link>
               );
             })}
-            <Button variant="hero" size="sm">
-              Connect Wallet
-            </Button>
+
+            {/* Wallet Button (desktop) */}
+            {!isConnected ? (
+              <Button
+                variant="hero"
+                size="sm"
+                onClick={handleConnect}
+                disabled={isConnecting}
+              >
+                {isConnecting ? "Connecting..." : "Connect Wallet"}
+              </Button>
+            ) : (
+              <div className="flex items-center space-x-3">
+                <span className="text-sm text-muted-foreground">
+                  {shortAccount || accountId} {balance ? `| ${balance} ℏ` : ""}
+                </span>
+                <Button variant="destructive" size="sm" onClick={disconnectWallet}>
+                  Disconnect
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -82,10 +123,39 @@ const Navigation = () => {
                   </Link>
                 );
               })}
+
               <div className="pt-2">
-                <Button variant="hero" size="sm" className="w-full">
-                  Connect Wallet
-                </Button>
+                {!isConnected ? (
+                  <Button
+                    variant="hero"
+                    size="sm"
+                    className="w-full"
+                    disabled={isConnecting}
+                    onClick={() => {
+                      handleConnect();
+                      setIsOpen(false);
+                    }}
+                  >
+                    {isConnecting ? "Connecting..." : "Connect Wallet"}
+                  </Button>
+                ) : (
+                  <div className="flex flex-col space-y-2">
+                    <span className="text-sm text-muted-foreground text-center">
+                      {shortAccount || accountId} {balance ? `| ${balance} ℏ` : ""}
+                    </span>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => {
+                        disconnectWallet();
+                        setIsOpen(false);
+                      }}
+                    >
+                      Disconnect
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
