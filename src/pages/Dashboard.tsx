@@ -1,3 +1,4 @@
+// src/pages/Dashboard.tsx
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,12 +12,19 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { useWallet } from "@/context/WalletContext"; // ✅ import wallet hook
+import { useWallet } from "@/context/WalletContext"; 
+// ❗️ We import the two functions we need from the HIP-820 compliant service
+import { signTokenRedemption, executeSwapOnBackend } from "@/services/swapService"; 
 
-// Dummy investment data (kept for now until token is ready)
+// --- CONSTANTS FOR REDEEM ---
+const HBAR_USD_RATE = 0.05; // ❗️ Dummy Rate: 1 HBAR = $0.05 USD 
+const MERIDIAN_HTS_ID = "0.0.7147805"; // The token the user will send back
+const REDEEM_AMOUNT = 1; // Amount of tokens to redeem for testing (1 token)
+
+// Dummy investment data (This is your original dummy data)
 const investmentData = {
-  propertyTokens: 25,
-  tokenValue: 100,
+  propertyTokens: 25, // User holding
+  tokenValue: 100, // USD value per token
   totalInvestment: 2500,
   currentValue: 2675,
   gainLoss: 175,
@@ -44,31 +52,8 @@ const transactionHistory = [
 
 const Dashboard = () => {
   const [isRedeeming, setIsRedeeming] = useState(false);
-  const { accountId, shortAccount, balance, isConnected } = useWallet(); // ✅ get wallet info
-
-  const handleRedeemTokens = async () => {
-    setIsRedeeming(true);
-    try {
-      toast({
-        title: "Redemption Initiated",
-        description: `Redeeming ${investmentData.propertyTokens} tokens worth $${investmentData.currentValue}`,
-      });
-      console.log("Redeeming tokens...");
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      toast({
-        title: "Redemption Complete",
-        description: "Your tokens have been successfully redeemed!",
-      });
-    } catch (error) {
-      toast({
-        title: "Redemption Failed",
-        description: "Unable to process redemption. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsRedeeming(false);
-    }
-  };
+  // ✅ This pulls all the live data from your working WalletConnect context
+  const { accountId, shortAccount, balance, isConnected } = useWallet(); 
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -79,6 +64,64 @@ const Dashboard = () => {
       minute: "2-digit",
     });
   };
+
+  // --- HOOKED REDEEM/SELL LOGIC (HIP-820 Compliant) ---
+  const handleRedeemTokens = async () => {
+    if (!isConnected || !accountId) {
+      toast({ title: "Connection Error", description: "Please connect your wallet first.", variant: "destructive" });
+      return;
+    }
+
+    const tokensToRedeem = REDEEM_AMOUNT;
+    // We use the dummy data for now
+    if (investmentData.propertyTokens < tokensToRedeem) {
+        toast({ title: "Insufficient Tokens", description: `You only hold ${investmentData.propertyTokens} tokens.`, variant: "destructive" });
+        return;
+    }
+    
+    // Calculate return value based on dummy data
+    const estimatedUSDReturn = tokensToRedeem * investmentData.tokenValue;
+    const estimatedHbarReturn = estimatedUSDReturn / HBAR_USD_RATE; 
+
+    console.log(`🔴 Initiating SELL Signature Request (Redeem ${tokensToRedeem} Tokens)`);
+
+    try {
+      setIsRedeeming(true);
+      
+      toast({
+        title: "Signing Required (1/2)",
+        description: `Please approve sending ${tokensToRedeem} Meridian token(s) to the Treasury.`,
+      });
+      
+      // 1. ❗️ CRITICAL FIX: Call signTokenRedemption with all 4 required arguments
+      const submissionResult = await signTokenRedemption(
+        tokensToRedeem, 
+        accountId, 
+        MERIDIAN_HTS_ID,
+        estimatedHbarReturn // Pass HBAR return value for backend
+      );
+      
+      // 2. The signTokenRedemption function now handles BOTH signing and submitting to backend
+      toast({
+        title: "Swap Completed Successfully",
+        description: `Backend executed transfer. You received ~${estimatedHbarReturn.toFixed(3)} ℏ.`,
+      });
+
+      window.location.reload(); 
+
+    } catch (error) {
+      console.error("❌ Redemption Failed:", error);
+      toast({
+        title: "Redemption Failed",
+        description: `Failed to process redemption: ${error instanceof Error ? error.message : 'Unknown Error'}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsRedeeming(false);
+    }
+  };
+  // -----------------------------------------------------
+
 
   return (
     <div className="min-h-screen py-8">
@@ -94,7 +137,8 @@ const Dashboard = () => {
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Wallet Info */}
+          
+          {/* Wallet Info (Pulls live data from useWallet) */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -136,7 +180,7 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Investment Summary */}
+          {/* Investment Summary (Uses original dummy data) */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -185,7 +229,7 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Actions */}
+          {/* Actions (HOOKED) */}
           <Card>
             <CardHeader>
               <CardTitle>Portfolio Actions</CardTitle>
@@ -194,14 +238,14 @@ const Dashboard = () => {
               <div className="space-y-3">
                 <div className="p-4 bg-muted rounded-lg">
                   <h4 className="font-semibold text-sm mb-2">
-                    Available for Redemption
+                    Redeemable Value
                   </h4>
                   <p className="text-2xl font-bold text-primary">
-                    ${investmentData.currentValue.toLocaleString()}
+                    {/* Display estimated return in HBAR */}
+                    {isConnected ? `~${((investmentData.currentValue / HBAR_USD_RATE)).toFixed(0)} ℏ` : 'Connect Wallet'}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {investmentData.propertyTokens} tokens @ $
-                    {investmentData.tokenValue} each
+                    Est. return for {REDEEM_AMOUNT} token(s).
                   </p>
                 </div>
 
@@ -210,24 +254,24 @@ const Dashboard = () => {
                   className="w-full"
                   size="lg"
                   onClick={handleRedeemTokens}
-                  disabled={isRedeeming}
+                  disabled={isRedeeming || !isConnected || investmentData.propertyTokens < REDEEM_AMOUNT} // Disable if user has < 1 token
                 >
                   {isRedeeming ? (
                     <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
                     <RefreshCw className="mr-2 h-4 w-4" />
                   )}
-                  {isRedeeming ? "Processing..." : "Redeem All Tokens"}
+                  {isRedeeming ? "Processing..." : `Redeem ${REDEEM_AMOUNT} Token(s)`}
                 </Button>
 
                 <p className="text-xs text-muted-foreground text-center">
-                  Token redemption is simulated in this MVP
+                  Redemption requires you to sign the token transfer.
                 </p>
               </div>
             </CardContent>
           </Card>
 
-          {/* Transaction History */}
+          {/* Transaction History (Uses original dummy data) */}
           <Card className="lg:col-span-3">
             <CardHeader>
               <CardTitle>Transaction History</CardTitle>

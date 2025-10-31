@@ -1,30 +1,36 @@
 {
   "compilerOptions": {
+    /* Target environment */
     "target": "ES2020",
     "useDefineForClassFields": true,
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
-    "skipLibCheck": true,
 
-    /* Bundler mode */
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
+    /* Module + bundler */
+    "module": "ESNext",
+    "moduleResolution": "node",            // ✅ was "bundler" → use "node" for resolveJsonModule compatibility
+    "resolveJsonModule": true,             // ✅ allow importing .json files
+    "esModuleInterop": true,               // ✅ allow default imports from CommonJS/JSON
+    "allowSyntheticDefaultImports": true,  // ✅ required by many Vite React setups
     "isolatedModules": true,
-    "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
 
-    /* Linting */
+    /* TypeScript linting */
     "strict": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noImplicitAny": false,
     "noFallthroughCasesInSwitch": false,
 
+    /* Aliases */
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+
+    /* Optional stability flags */
+    "skipLibCheck": true,
+    "moduleDetection": "force"
   },
   "include": ["src"]
 }

@@ -5,9 +5,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Navigation from "./components/Navigation";
 import Home from "./pages/Home";
-import Property from "./pages/Property"; 
+import Properties from "./pages/Properties";
+import PropertyDetail from "./pages/PropertyDetail";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
+import TestTransfer from "./pages/test-tansfer";
 
 const queryClient = new QueryClient();
 
@@ -21,8 +23,10 @@ const App = () => (
           <Navigation />
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/property" element={<Property />} />
+            <Route path="/properties" element={<Properties />} />
+            <Route path="/properties/:id" element={<PropertyDetail />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/test-transfer" element={<TestTransfer />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
